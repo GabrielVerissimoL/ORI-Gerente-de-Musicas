@@ -1,0 +1,8 @@
+#arquivos .o
+*.o
+
+#configuração do vscode
+.vscode/
+
+#Executavel
+bin/
