@@ -1,20 +1,20 @@
-CC = gcc
-CFLAGS = -Wall -g
+CXX = g++
+CXXFLAGS = -Wall -g
 
 TARGET = bin/projeto
 
-SRCS = $(shell find . -name "*.c")
+SRCS = $(shell find . -name "*.cpp")
 
-INCLUDES = $(shell find . -name "*.h" -exec dirname {} \; | sort -u | sed 's/^/-I/')
+INCLUDES = $(shell find . -name "*.hpp" -exec dirname {} \; | sort -u | sed 's/^/-I/')
 
-OBJS = $(SRCS:.c=.o)
+OBJS = $(SRCS:.cpp=.o)
 
 $(TARGET): $(OBJS)
 	mkdir -p bin
-	$(CC) $(CFLAGS) $(INCLUDES) -o $(TARGET) $(OBJS)
+	$(CXX) $(CFLAGS) $(INCLUDES) -o $(TARGET) $(OBJS)
 
-%.o: %.c
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+%.o: %.cpp
+	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 	
 clean:
 	rm -f $(OBJS) $(TARGET)
