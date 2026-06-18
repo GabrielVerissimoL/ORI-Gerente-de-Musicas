@@ -1,4 +1,8 @@
 buildessential
+git
 cmake
-libboost-all-dev 
+g++
+jsoncpp-dev
+libuuid-dev
+zlib1g-dev
 libssl-dev
