@@ -3,7 +3,7 @@
 
 int main()
 {
-    music m1("Amargurado", "Tião Carreiro e Pardinho", "Sucessos", "url", "Sertanejo Raiz", 180000, 90.0, 3, 103);
+    music m1("Amargurado", "Tião Carreiro e Pardinho", "Sucessos", "url", "Sertanejo Raiz", 180000, 90.0, 3, 103,0);
 
     m1.print();
 

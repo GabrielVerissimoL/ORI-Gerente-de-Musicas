@@ -6,11 +6,24 @@ using namespace std;
 
 music::music(const string& name, const string& singer, const string& album_name,
              const string& url, const string& genre, float duration_ms, 
-             float popularity, int album_id, int id)             
+             float popularity, int album_id, int id,int rrn)             
           : name(name), singer(singer), album_name(album_name), 
             url(url), genre(genre), duration_ms(duration_ms), 
-            popularity(popularity), album_id(album_id), id(id) {}
+            popularity(popularity), album_id(album_id), id(id), rrn(rrn){}
 
+music::music()
+{
+    name = "null";
+    singer = "massaro";
+    album_name = "massaros";
+    url = "invalido";
+    genre = "naomusical";
+    duration_ms = 0;
+    popularity = 0;
+    album_id = -1;
+    id = -1;
+    rrn = -1;
+}
 
 music::~music() 
 {

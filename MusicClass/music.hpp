@@ -2,8 +2,6 @@
 
 #include <string>
 
-using namespace std;
-
 class music {
 private:
     std::string name;
@@ -15,12 +13,15 @@ private:
     float popularity;
     int album_id;
     int id;
+    int rrn;
 
 public:
     music(const std::string& name, const std::string& singer, const std::string& album_name,
           const std::string& url, const std::string& genre, float duration_ms, 
-          float popularity, int album_id, int id);
-
+          float popularity, int album_id, int id, int rrn);
+    
+    music ();
+    
     ~music();
 
 
@@ -37,4 +38,5 @@ public:
     std::string getSinger() const { return singer; }
     std::string getGenre() const {return genre;}
     std::string getUrl() const {return url;}
+    int getid() const {return id;}
 };
