@@ -63,7 +63,7 @@ private:
         x->n = x->n + 1;
     }
 
-    // Inserir em um nó não cheio
+    // Inserir em um nó não cheio (Recebe a música inteira)
     void insertNonFull(BTreeNode* x, music k) {
         int i = x->n - 1;
 
@@ -90,19 +90,19 @@ private:
         }
     }
 
-    // Procura uma chave
-    BTreeNode* search(BTreeNode* x, music k) {
+    // Procura uma chave (Recebe apenas o ID)
+    BTreeNode* search(BTreeNode* x, int id) {
         int i = 0;
-        while (i < x->n && k.getid() > x->keys[i].getid())
+        while (i < x->n && id > x->keys[i].getid())
             i++;
 
-        if (i < x->n && k.getid() == x->keys[i].getid())
+        if (i < x->n && id == x->keys[i].getid())
             return x;
 
         if (x->leaf)
             return nullptr;
 
-        return search(x->children[i], k);
+        return search(x->children[i], id);
     }
 
     music getPredecessor(BTreeNode* node, int idx) {
@@ -210,19 +210,19 @@ private:
 
     // Remoção de não-folha
     void removeFromNonLeaf(BTreeNode* node, int idx) {
-        music k = node->keys[idx];
+        int id = node->keys[idx].getid(); // Pega o ID da música atual
 
         if (node->children[idx]->n >= ORDER / 2) {
             music pred = getPredecessor(node, idx);
             node->keys[idx] = pred;
-            remove(node->children[idx], pred);
+            remove(node->children[idx], pred.getid()); // Passa o ID do predecessor
         } else if (node->children[idx + 1]->n >= ORDER / 2) {
             music succ = getSuccessor(node, idx);
             node->keys[idx] = succ;
-            remove(node->children[idx + 1], succ);
+            remove(node->children[idx + 1], succ.getid()); // Passa o ID do sucessor
         } else {
             merge(node, idx);
-            remove(node->children[idx], k);
+            remove(node->children[idx], id); // Passa o ID original
         }
     }
 
@@ -234,20 +234,20 @@ private:
         node->n--;
     }
 
-    // Remove
-    void remove(BTreeNode* node, music k) {
+    // Remove (Recebe apenas o ID)
+    void remove(BTreeNode* node, int id) {
         int idx = 0;
-        while (idx < node->n && node->keys[idx].getid() < k.getid())
+        while (idx < node->n && node->keys[idx].getid() < id)
             ++idx;
 
-        if (idx < node->n && node->keys[idx].getid() == k.getid()) {
+        if (idx < node->n && node->keys[idx].getid() == id) {
             if (node->leaf)
                 removeFromLeaf(node, idx);
             else
                 removeFromNonLeaf(node, idx);
         } else {
             if (node->leaf) {
-                std::cout << "A música não está presente na árvore.\n";
+                std::cout << "A música com ID " << id << " não está presente na árvore.\n";
                 return;
             }
 
@@ -257,16 +257,16 @@ private:
                 fill(node, idx);
 
             if (flag && idx > node->n)
-                remove(node->children[idx - 1], k);
+                remove(node->children[idx - 1], id);
             else
-                remove(node->children[idx], k);
+                remove(node->children[idx], id);
         }
     }
 
 public:
     BTree() { root = new BTreeNode(true); }
 
-    // Insere na árvore
+    // Insere na árvore (Continua recebendo a música inteira)
     void insert(music k) {
         if (root->n == ORDER - 1) {
             BTreeNode* s = new BTreeNode(false);
@@ -278,19 +278,19 @@ public:
             insertNonFull(root, k);
     }
 
-    // Busca na árvore
-    BTreeNode* search(music k) {
-        return (root == nullptr) ? nullptr : search(root, k);
+    // Busca na árvore (Recebe apenas o ID)
+    BTreeNode* search(int id) {
+        return (root == nullptr) ? nullptr : search(root, id);
     }
 
-    // Remove da árvore
-    void remove(music k) {
+    // Remove da árvore (Recebe apenas o ID)
+    void remove(int id) {
         if (!root) {
             std::cout << "A árvore está vazia.\n";
             return;
         }
 
-        remove(root, k);
+        remove(root, id);
 
         if (root->n == 0) {
             BTreeNode* tmp = root;
