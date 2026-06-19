@@ -21,7 +21,7 @@ public:
           float popularity, int album_id, int id, int rrn);
     
     music ();
-    
+
     ~music();
 
 
@@ -37,6 +37,7 @@ public:
     std::string getName() const { return name; }
     std::string getSinger() const { return singer; }
     std::string getGenre() const {return genre;}
+    std::string getalbum_name() const {return album_name;}
     std::string getUrl() const {return url;}
     int getid() const {return id;}
 };
