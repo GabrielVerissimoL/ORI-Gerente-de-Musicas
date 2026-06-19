@@ -20,17 +20,7 @@ private:
     void removerIdDoVetor(std::vector<int>& vetor, int id);
 public:
 
-    void insert(music m) {
-        int id = m.getid();
-        
-        arvorePrincipal.insert(m);
-        
-        //indices para nome da musica, cantor, nome do album e genero (Respectivamente)
-        indiceNomes[m.getName()].push_back(id);
-        indiceCantores[m.getSinger()].push_back(id);
-        indiceAlbuns[m.getalbum_name()].push_back(id);
-        indiceGeneros[m.getGenre()].push_back(id);
-    }
+    void insert(music m);
 
     //busca por ID
     BTreeNode* IdSearch(int id);
