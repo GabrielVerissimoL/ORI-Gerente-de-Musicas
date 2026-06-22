@@ -6,6 +6,11 @@
 
 using namespace drogon;
 
+BTree mainTree;
+
+
+
+
 // Controller de alto nível para gerenciar produtos
 class MusicController : public HttpController<MusicController> {
 public:
@@ -29,6 +34,7 @@ public:
 	if (found == NULL || &found->keys[id] == NULL)
 	{
 		callback(res_ERR);
+		return ;
 	}
 	
 	int rrn = found->keys[id].getrrn();
@@ -41,6 +47,7 @@ public:
 	if (dataout == nullptr)
 	{
 		callback(res_ERR);
+		return ;
 	}
 
 	music *ptr;
@@ -70,19 +77,35 @@ public:
 
     // 3. POST - Criar produto
     void UPLOAD(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback) {
-        auto json_corpo = req->getJsonObject();
-        if (!json_corpo) {
-            auto res = HttpResponse::newHttpResponse();
-            res->setStatusCode(k400BadRequest);
-            callback(res);
+	
+        auto res_ERR = HttpResponse::newHttpResponse();
+        res_ERR->setStatusCode(k400BadRequest);
+
+        auto Music_json = req->getJsonObject();
+        if (!Music_json) {
+            callback(res_ERR);
             return;
         }
 
-        int id = (*json_corpo)["id"].asInt();
-        std::string nome = (*json_corpo)["nome"].asString();
+
+	std::string name 	= (*Music_json)["name"].asString();
+	std::string singer 	= (*Music_json)["singer"].asString();
+	std::string album 	= (*Music_json)["album_name"].asString();
+	std::string url		= (*Music_json)["url"].asString();
+	std::string genre	= (*Music_json)["genre"].asString();
+	float duration		= (*Music_json)["duration_ms"].asFloat();
+	float popularity	= (*Music_json)["popularity"].asFloat();
+	int album_id		= (*Music_json)["album_id"].asInt();
+        int id 			= (*Music_json)["id"].asInt();
+	int rrn 		= (*Music_json)["rrn"].asInt(); 
+	
+	// objeto music criado
+	music k(name, singer, album, url, genre, duration, popularity, album_id, id, rrn);
+
+	mainTree.insert(k);
 
         Json::Value sucesso;
-        sucesso["mensagem"] = "Criado com sucesso";
+        sucesso["mensagem"] = "Musica adicionado.";
         
         auto res = HttpResponse::newHttpJsonResponse(sucesso);
         res->setStatusCode(k201Created);
@@ -91,10 +114,10 @@ public:
 };
 
 int main() {
-    // Inicializa o servidor de forma totalmente abstrata
-    app()
+
+	app()
         .addListener("0.0.0.0", 5000)
-        .setThreadNum(4) // Gerenciamento automático de threads
+        .setThreadNum(4) 
         .run();
     return 0;
 }
