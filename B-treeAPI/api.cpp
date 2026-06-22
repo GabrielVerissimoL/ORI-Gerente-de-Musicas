@@ -4,7 +4,6 @@
 #include "../MusicClass/music.hpp"
 #include "../B-treeClass/btree.hpp"
 
-using namespace btree;
 using namespace drogon;
 
 // Controller de alto nível para gerenciar produtos
@@ -19,13 +18,21 @@ public:
 
     void SEARCH_BY_ID(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, int id) {
 
+	Json::Value ERR;
+	ERR["Erro"] = "Essa musica não existe.";
+	auto res_ERR = HttpResponse::newHttpJsonResponse(ERR);
+	res_ERR->setStatusCode(k404NotFound);
+	
 	BTree bt;
-	int rrn = bt.search(id);
+	BTreeNode *found = bt.search(id);	
+
+	if (found == NULL || &found->keys[id] == NULL)
+	{
+		callback(res_ERR);
+	}
+	
+	int rrn = found->keys[id].getrrn();
         if (rrn < 0) {
-		Json::Value ERR;
-		ERR["Erro"] = "Essa musica não existe.";
-		auto res_ERR = HttpResponse::newHttpJsonResponse(ERR);
-		res_ERR->setStatusCode(k404NotFound);
         	callback(res_ERR);
            	return;
         }
@@ -36,24 +43,24 @@ public:
 		callback(res_ERR);
 	}
 
-	music::music *ptr;
-	ptr->rrn = rrn;
+	music *ptr;
+	ptr->setrrn(rrn);
 
-	fseek(dataout, ptr->rrn, SEEK_SET);
+	fseek(dataout, ptr->getrrn(), SEEK_SET);
 
-	if (fread(ptr, sizeof(music::music), 1, dataout) == 0)
+	if (fread(ptr, sizeof(music), 1, dataout) == 0)
 	{
 		callback(res_ERR);
 	}
 
         Json::Value Answer;
-	Answer["Name"] 		= ptr->name;
-	Answer["Singer"] 	= ptr->singer;
-	Answer["Album Name"] 	= ptr->album_name;
-	Answer["URL"] 		= ptr->url;
-	Answer["Genre"]		= ptr->genre;
-	Answer["Duration"]	= ptr->duration_ms;
-	Answer["Popularity"]	= ptr->populatrity;
+	Answer["Name"] 		= ptr->getName();
+	Answer["Singer"] 	= ptr->getSinger();
+	Answer["Album Name"] 	= ptr->getalbum_name();
+	Answer["URL"] 		= ptr->getUrl();
+	Answer["Genre"]		= ptr->getGenre();
+	Answer["Duration"]	= ptr->getDuration();
+	Answer["Popularity"]	= ptr->getPopularity();
 
 	fclose(dataout);
 

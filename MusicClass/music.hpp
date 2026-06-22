@@ -34,10 +34,15 @@ public:
     static bool alphabeticalnamecompare(const music& a, const music& b);
 
 
-    std::string getName() const { return name; }
-    std::string getSinger() const { return singer; }
+    std::string getName() const { return name;}
+    std::string getSinger() const { return singer;}
     std::string getGenre() const {return genre;}
     std::string getalbum_name() const {return album_name;}
     std::string getUrl() const {return url;}
+    float getPopularity() const {return popularity;}
+    float getDuration() const {return duration_ms;}
     int getid() const {return id;}
+    int getrrn() const {return rrn;}
+    
+    void setrrn(int nrrn) {this->rrn = nrrn; return;}
 };
