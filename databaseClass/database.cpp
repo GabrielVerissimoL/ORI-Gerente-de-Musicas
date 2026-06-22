@@ -1,12 +1,18 @@
 #include <iostream>
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <vector>
 #include <algorithm> 
+#include <cctype>
 #include "../B-treeClass/btree.hpp" 
 #include "../MusicClass/music.hpp"
 #include "database.hpp"
 
+std::string tolowercase(std::string str)
+{
+    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+    return str;
+}
 
 void database::removerIdDoVetor(std::vector<int>& vetor, int id) 
 {
@@ -17,107 +23,166 @@ void database::insert(music m)
 {
     int id = m.getid();
         
-    arvorePrincipal.insert(m);
+    btree.insert(m);
         
     //indices para nome da musica, cantor, nome do album e genero (Respectivamente)
-    indiceNomes[m.getName()].push_back(id);
-    indiceCantores[m.getSinger()].push_back(id);
-    indiceAlbuns[m.getalbum_name()].push_back(id);
-    indiceGeneros[m.getGenre()].push_back(id);
+    indiceNomes[tolowercase(m.getName())].push_back(id);
+    indicecantores[tolowercase(m.getSinger())].push_back(id);
+    indiceAlbuns[tolowercase(m.getalbum_name())].push_back(id);
+    indiceGeneros[tolowercase(m.getGenre())].push_back(id);
 }
 
 BTreeNode* database::IdSearch(int id)
 {
-    return arvorePrincipal.search(id);
+    return btree.search(id);
 }
 
-std::vector<BTreeNode*> database::SingerSearch(std::string singer) 
+std::vector<music> database::SingerSearch(std::string singer) 
 {
-    std::vector<BTreeNode*> answer;
-        
-    if (indiceCantores.find(singer) != indiceCantores.end()) 
-    {
+    std::vector<music> answer;
+    std::string singerlower = tolowercase(singer);
 
-        std::vector<int>& ids = indiceCantores[singer];
-            
-        for (int id : ids) 
+    auto iterador = indicecantores.lower_bound(singerlower);
+    bool find = false;
+    while(iterador != indicecantores.end() && iterador->first.compare(0,singerlower.size(), singerlower) == 0)
+    {
+        find = true;
+        //lista de ids que o singer aponta
+        std::vector<int>& ids = iterador->second;
+        
+        for(int id: ids)
         {
-            BTreeNode* no = arvorePrincipal.search(id);
-            if (no != nullptr) answer.push_back(no);
+            BTreeNode *node = btree.search(id);
+            if(node != nullptr)
+            {
+                for(int i = 0;i < node->n; i++)
+                {
+                    if(node->keys[i].getid() == id)
+                    {
+                        answer.push_back(node->keys[i]);
+                        break;
+                    }
+                }
+            }
         }
-         
+
+        iterador++;
     }
 
-    else std::cout << singer << " Not Found\n";
-        
+    if (!find) std::cout << "No singer starting with " << singer << " was found.\n";
     return answer;
 }
-
-std::vector<BTreeNode*> database::NameSearch(std::string Name) 
+std::vector<music> database::NameSearch(std::string name) 
 {
-    std::vector<BTreeNode*> answer;
-        
-    if (indiceNomes.find(Name) != indiceNomes.end()) 
+    std::vector<music> answer;
+    std::string namelower = tolowercase(name);
+
+    auto iterador = indiceNomes.lower_bound(namelower);
+    bool find = false;
+    while(iterador != indiceNomes.end() && iterador->first.compare(0,namelower.size(), namelower) == 0)
     {
-        std::vector<int>& ids = indiceNomes[Name];
-            
-        for (int id : ids) 
+        find = true;
+        //lista de ids que o nome aponta
+        std::vector<int>& ids = iterador->second;
+        
+        for(int id: ids)
         {
-            BTreeNode* no = arvorePrincipal.search(id);
-            if (no != nullptr) answer.push_back(no);
+            BTreeNode *node = btree.search(id);
+            if(node != nullptr)
+            {
+                for(int i = 0;i < node->n; i++)
+                {
+                    if(node->keys[i].getid() == id)
+                    {
+                        answer.push_back(node->keys[i]);
+                        break;
+                    }
+                }
+            }
         }
 
-    } 
-    
-    else std::cout << "Music with name: "<< Name << " Not Found\n";
-        
+        iterador++;
+    }
+
+    if (!find) std::cout << "No music starting with " << name << " was found.\n";
     return answer;
 }
 
- std::vector<BTreeNode*> database::Album_nameSearch(std::string album) 
+ std::vector<music> database::Album_nameSearch(std::string album) 
  {
-    std::vector<BTreeNode*> answer;
-        
-    if (indiceAlbuns.find(album) != indiceAlbuns.end()) 
+     std::vector<music> answer;
+    std::string albumlower = tolowercase(album);
+
+    auto iterador = indiceAlbuns.lower_bound(albumlower);
+    bool find = false;
+    while(iterador != indiceAlbuns.end() && iterador->first.compare(0,albumlower.size(), albumlower) == 0)
     {
-        std::vector<int>& ids = indiceAlbuns[album];
-            
-        for (int id : ids) 
+        find = true;
+        //lista de ids que o album aponta
+        std::vector<int>& ids = iterador->second;
+        
+        for(int id: ids)
         {
-            BTreeNode* no = arvorePrincipal.search(id);
-            if (no != nullptr) answer.push_back(no);
+            BTreeNode *node = btree.search(id);
+            if(node != nullptr)
+            {
+                for(int i = 0;i < node->n; i++)
+                {
+                    if(node->keys[i].getid() == id)
+                    {
+                        answer.push_back(node->keys[i]);
+                        break;
+                    }
+                }
+            }
         }
 
-    } 
+        iterador++;
+    }
 
-    else std::cout << album << " Not Found\n";
-        
+    if (!find) std::cout << "No album starting with " << album << " was found.\n";
     return answer;
 }
 
- std::vector<BTreeNode*> database::GenreSearch(std::string genre) 
+ std::vector<music> database::GenreSearch(std::string genre) 
  {
-    std::vector<BTreeNode*> answer;
-        
-    if (indiceGeneros.find(genre) != indiceGeneros.end()) {
+    std::vector<music> answer;
+    std::string genrelower = tolowercase(genre);
 
-        std::vector<int>& ids = indiceGeneros[genre];
-            
-        for (int id : ids) 
-        {
-            BTreeNode* no = arvorePrincipal.search(id);
-            if (no != nullptr) answer.push_back(no);
-        }
-    } 
-    
-    else std::cout << genre << " Not Found\n";
+    auto iterador = indiceGeneros.lower_bound(genrelower);
+    bool find = false;
+    while(iterador != indiceGeneros.end() && iterador->first.compare(0,genrelower.size(), genrelower) == 0)
+    {
+        find = true;
+        //lista de ids que o genero aponta
+        std::vector<int>& ids = iterador->second;
         
+        for(int id: ids)
+        {
+            BTreeNode *node = btree.search(id);
+            if(node != nullptr)
+            {
+                for(int i = 0;i < node->n; i++)
+                {
+                    if(node->keys[i].getid() == id)
+                    {
+                        answer.push_back(node->keys[i]);
+                        break;
+                    }
+                }
+            }
+        }
+
+        iterador++;
+    }
+
+    if (!find) std::cout << "No genre starting with " << genre << " was found.\n";
     return answer;
 }
 
 void database::removeMusic(int id) 
 {
-    BTreeNode* node = arvorePrincipal.search(id);
+    BTreeNode* node = btree.search(id);
     if (node != nullptr) 
     {
         for (int i = 0; i < node->n; i++) 
@@ -126,15 +191,15 @@ void database::removeMusic(int id)
             {
                 music m = node->keys[i]; 
                     
-                removerIdDoVetor(indiceNomes[m.getName()], id);
-                removerIdDoVetor(indiceCantores[m.getSinger()], id);
-                removerIdDoVetor(indiceAlbuns[m.getalbum_name()], id);
-                removerIdDoVetor(indiceGeneros[m.getGenre()], id);   
+                removerIdDoVetor(indiceNomes[tolowercase(m.getName())], id);
+                removerIdDoVetor(indicecantores[tolowercase(m.getSinger())], id);
+                removerIdDoVetor(indiceAlbuns[tolowercase(m.getalbum_name())], id);
+                removerIdDoVetor(indiceGeneros[tolowercase(m.getGenre())], id);   
                 break;
             }
         }
 
-        arvorePrincipal.remove(id);
+        btree.remove(id);
     } 
     else std::cout << "Fail To remove music with ID: " << id << "\n"; 
 }
