@@ -12,6 +12,7 @@
 using namespace drogon;
 
 BTree mainTree;
+database dbGlobal;
 
 void populate_json(Json::Value *ret, music current);
 
@@ -224,7 +225,7 @@ public:
 		int album_id		= (*Music_json)["album_id"].asInt();
 	
 		// objeto music criado
-		music m(name, singer, album, url, genre, duration, popularity, album_id, id, rrn);
+		music m(name, singer, album, url, genre, duration, popularity, album_id);
 
 		dbGlobal.insert(m);
 
