@@ -1,138 +1,80 @@
-// ============================================================================
-// conversor.cpp - Conversão de CSV para Binário de Tamanho Fixo (724 Bytes)
-// ============================================================================
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <string>
 #include <cstring>
-#include "../MusicClass/music.hpp" // Altere o caminho caso os arquivos estejam em pastas diferentes
+#include "../MusicClass/music.hpp"
+#include "../B-treeClass/btree.hpp"
 
-#define CSV_FILE "dataset.csv"                  // Nome do seu arquivo CSV de entrada
-#define BINARY_FILE "arquivo_de_dados_binario"  // Nome do binário que será gerado
 
-using namespace std;
-
-// Layout físico obrigatório para gravação exata de 724 bytes em disco
-struct FileRecordLayout {
-    char name[150];
-    char singer[150];
-    char album_name[150];
-    char url[200];
-    char genre[50];
-    float duration_ms;
-    float popularity;
-    int album_id;
-    int id;
-    int rrn;
-};
-
-// Função auxiliar para limpar as aspas que o formato CSV costuma colocar nas strings
-string limparAspas(string str) {
-    if (!str.empty() && str.front() == '"') str.erase(0, 1);
-    if (!str.empty() && str.back() == '"') str.pop_back();
-    return str;
+std::vector<std::string> parseCSVLine(const std::string& line) {
+    std::vector<std::string> result;
+    std::string current;
+    bool inQuotes = false;
+    for (char c : line) {
+        if (c == '"') inQuotes = !inQuotes;
+        else if (c == ',' && !inQuotes) {
+            result.push_back(current);
+            current.clear();
+        } else {
+            current.push_back(c);
+        }
+    }
+    result.push_back(current);
+    return result;
 }
 
 int main() {
-    // 1. Abre o arquivo CSV para leitura
-    ifstream csv_in(CSV_FILE);
-    if (!csv_in.is_open()) {
-        cerr << "[ERRO] Nao foi possivel abrir o arquivo CSV '" << CSV_FILE << "'" << endl;
+    std::string caminhoCSV = "tcc_ceds_music.csv";
+    std::ifstream file(caminhoCSV);
+    if (!file.is_open()) {
+        std::cerr << "Erro ao abrir o CSV." << std::endl;
         return 1;
     }
 
-    // 2. Abre o arquivo binário para escrita limpa
-    FILE* bin_out = fopen(BINARY_FILE, "wb");
-    if (!bin_out) {
-        cerr << "[ERRO] Nao foi possivel criar o arquivo binario!" << endl;
-        csv_in.close();
-        return 1;
+    std::string line;
+    if (!std::getline(file, line)) return 1;
+
+    FILE *datain = fopen(FILE_NAME, "wb");
+    if (!datain) return 1;
+
+    std::cout << "Convertendo CSV para registros de tamanho fixo..." << std::endl;
+
+    int contador_id = 0;
+
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+        std::vector<std::string> campos = parseCSVLine(line);
+        if (campos.size() < 6) continue;
+
+        MusicRecord record;
+        std::memset(&record, 0, sizeof(MusicRecord));
+
+        // Copia limitando o tamanho para não estourar os arrays
+        std::strncpy(record.singer, campos[1].c_str(), 149);
+        std::strncpy(record.name, campos[2].c_str(), 149);
+        std::string album_name = "Album " + campos[3];
+        std::strncpy(record.album_name, album_name.c_str(), 149);
+        std::string url = "https://spotify.example.com/" + std::to_string(idaux);
+        std::strncpy(record.url, url.c_str(), 199);
+        std::strncpy(record.genre, campos[4].c_str(), 49);
+
+        record.duration_ms = 180000.0f;
+        try { record.duration_ms = std::stof(campos[6]) * 1000.0f; } catch(...) {}
+        record.popularity = 50.0f;
+        record.album_id = 0;
+        record.id = idaux;
+        record.rrn = idaux;
+
+        fwrite(&record, sizeof(MusicRecord), 1, datain);
+        idaux++;
+        contador_id++;
     }
 
-    string linha;
-    // Pula a primeira linha do CSV (Cabeçalho com os nomes das colunas)
-    getline(csv_in, linha);
-
-    cout << "====================================================" << endl;
-    cout << "Iniciando conversao do CSV para Binario de Tamanho Fixo..." << endl;
-    cout << "====================================================" << endl;
-    
-    int processados = 0;
-
-    // Loop de leitura linha por linha
-    while (getline(csv_in, linha)) {
-        if (linha.empty()) continue;
-
-        stringstream ss(linha);
-        string campo;
-        vector<string> campos;
-
-        // Divide a linha do CSV usando a vírgula como delimitador
-        while (getline(ss, campo, ',')) {
-            campos.push_back(campo);
-        }
-
-        // Verifica se a linha tem o número mínimo de colunas necessárias do seu dataset
-        if (campos.size() < 8) continue; 
-
-        // Extrai e limpa os campos de texto
-        string v_name       = limparAspas(campos[0]);
-        string v_singer     = limparAspas(campos[1]);
-        string v_album_name = limparAspas(campos[2]);
-        string v_url        = limparAspas(campos[3]);
-        string v_genre      = limparAspas(campos[4]);
-        
-        // Conversão dos tipos numéricos (com tratamento básico de erro de conversão)
-        float v_duration = 0.0f;
-        float v_popularity = 0.0f;
-        int v_album_id = -1;
-        
-        try {
-            v_duration   = stof(campos[5]);
-            v_popularity = stof(campos[6]);
-            v_album_id   = stoi(campos[7]);
-        } catch (...) {
-            // Se der erro de parsing em alguma linha corrompida do CSV, apenas pula ela
-            continue; 
-        }
-
-        // 3. Instancia o objeto 'music' usando o novo construtor
-        // O ID incremental e o RRN em bytes (724 * id) são calculados automaticamente aqui dentro!
-        music m(v_name, v_singer, v_album_name, v_url, v_genre, v_duration, v_popularity, v_album_id);
-
-        // 4. Monta a estrutura física limpa para salvar no disco de forma estática
-        FileRecordLayout registro_disco;
-        memset(&registro_disco, 0, sizeof(registro_disco)); // Garante que não vá lixo de memória para o arquivo
-
-        // Copia as std::string com segurança respeitando o limite dos arrays de char do arquivo
-        strncpy(registro_disco.name, m.getName().c_str(), 149);
-        strncpy(registro_disco.singer, m.getSinger().c_str(), 149);
-        strncpy(registro_disco.album_name, m.getalbum_name().c_str(), 149);
-        strncpy(registro_disco.url, m.getUrl().c_str(), 199); 
-        strncpy(registro_disco.genre, m.getGenre().c_str(), 49);
-
-        // Atribui os dados numéricos e de indexação gerados pela classe
-        registro_disco.duration_ms = m.getDuration();
-        registro_disco.popularity  = m.getPopularity();
-        registro_disco.album_id    = v_album_id;
-        registro_disco.id          = m.getid();   // Captura o idaux automático
-        registro_disco.rrn         = m.getrrn();  // Captura o Byte Offset exato (724 * id)
-
-        // 5. Escreve o bloco fixo de 724 bytes direto no arquivo binário
-        fwrite(&registro_disco, sizeof(FileRecordLayout), 1, bin_out);
-        processados++;
-    }
-
-    // Fecha os descritores de arquivo abertos
-    fclose(bin_out);
-    csv_in.close();
-
-    cout << "====================================================" << endl;
-    cout << "[SUCESSO] Conversao concluida!" << endl;
-    cout << "Total de musicas gravadas: " << processados << " registros." << endl;
-    cout << "Tamanho de cada registro em disco: " << sizeof(FileRecordLayout) << " bytes." << endl;
-    cout << "====================================================" << endl;
-
+    file.close();
+    fclose(datain);
+    std::cout << "Sucesso! Criado arquivo binario estável com " << contador_id << " musicas." << std::endl;
     return 0;
 }
+//     g++ -Wall -Wextra -g3 -I"s:\Codigos\ORI-Gerente-de-Musicas\MusicClass" "s:\Codigos\ORI-Gerente-de-Musicas\B-treeAPI\conversor.cpp" "s:\Codigos\ORI-Gerente-de-Musicas\MusicClass\music.cpp" "s:\Codigos\ORI-Gerente-de-Musicas\databaseClass\database.cpp" -o "s:\Codigos\ORI-Gerente-de-Musicas\B-treeAPI\conversor.exe"

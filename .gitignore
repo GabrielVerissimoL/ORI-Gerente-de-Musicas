@@ -1,6 +1,9 @@
 #arquivos .o
 *.o
 
+#arquivo .exe
+*.exe
+
 #configuração do vscode
 .vscode/
 

@@ -1,4 +1,7 @@
 #include <iostream>
+#include <sstream>
+#include <fstream>
+#include <cstring>
 #include <string>
 #include <map>
 #include <vector>
@@ -21,15 +24,52 @@ void database::removerIdDoVetor(std::vector<int>& vetor, int id)
 
 void database::insert(music m) 
 {
-    int id = m.getid();
+    int id = m.getrrn();
+
+    if(id == idaux - 1){
+        FILE* dataout = fopen(FILE_NAME, "rb+");
+    
+        if (!dataout) {
+            std::cerr << "[ERRO] Nao foi possivel abrir o arquivo!" << std::endl;
+        
+            return;
+        }
+
+        MusicRecord record;
+
+        std::memset(&record, 0, sizeof(MusicRecord));
+
+        // Copia limitando o tamanho para não estourar os arrays
+        std::strncpy(record.singer, m.getSinger().c_str() , 149);
+        std::strncpy(record.name, m.getName().c_str(), 149);
+        std::strncpy(record.album_name, m.getalbum_name().c_str(), 149);
+        std::strncpy(record.url, m.getUrl().c_str(), 199);
+        std::strncpy(record.genre, m.getGenre().c_str(), 49);
+
+        record.duration_ms = m.getDuration(); 
+        record.popularity  = m.getPopularity();
+        record.album_id    = m.getalbum_id();
+        record.id = m.getid();
+        record.rrn = m.getrrn();
+
+        long long byteOffset = static_cast<long long>(m.getrrn()) * sizeof(MusicRecord);
+            
+            // Move o ponteiro do arquivo para o lugar certo e grava
+            fseek(dataout, byteOffset, SEEK_SET);
+            fwrite(&record, sizeof(MusicRecord), 1, dataout);
+
+        // Não esqueça de fechar no final se abrir com sucesso
+        fclose(dataout);
+    }
         
     btree.insert(m);
-        
+
     //indices para nome da musica, cantor, nome do album e genero (Respectivamente)
     indiceNomes[tolowercase(m.getName())].push_back(id);
     indicecantores[tolowercase(m.getSinger())].push_back(id);
     indiceAlbuns[tolowercase(m.getalbum_name())].push_back(id);
     indiceGeneros[tolowercase(m.getGenre())].push_back(id);
+
 }
 
 BTreeNode* database::IdSearch(int id)

@@ -222,33 +222,12 @@ public:
 		float duration		= (*Music_json)["duration_ms"].asFloat();
 		float popularity	= (*Music_json)["popularity"].asFloat();
 		int album_id		= (*Music_json)["album_id"].asInt();
-	        int id 			= (*Music_json)["id"].asInt();
-		int rrn 		= (*Music_json)["rrn"].asInt(); 
 	
 		// objeto music criado
-		music k(name, singer, album, url, genre, duration, popularity, album_id, id, rrn);
+		music m(name, singer, album, url, genre, duration, popularity, album_id, id, rrn);
 
-		mainTree.insert(k);
+		dbGlobal.insert(m);
 
-
-		FILE *datain = fopen(FILE_NAME, "ab+");
-		if (fwrite(&k, sizeof(music), 1, datain) == 0)
-		{
-			Json::Value erro;
-			erro["Erro"] = "Não foi possivel adicionar essa musica.";
-
-			auto res = HttpResponse::newHttpJsonResponse(erro);
-			callback(res);
-			return ;	
-		}
-
-	        Json::Value sucesso;
-        	sucesso["mensagem"] = "Musica adicionado.";
-       
-
-	        auto res = HttpResponse::newHttpJsonResponse(sucesso);
-        	res->setStatusCode(k201Created);
-	        callback(res);
 		return ;
 	    }
 };
