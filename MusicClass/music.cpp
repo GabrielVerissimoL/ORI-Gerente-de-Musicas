@@ -3,13 +3,33 @@
 
 using namespace std; 
 
+// Estrutura física idêntica ao layout do arquivo binário (724 bytes fixos)
+// Usada exclusivamente para calcular dinamicamente o deslocamento em bytes
+struct FileRecordLayout {
+    char name[150]; char singer[150]; char album_name[150]; char url[200]; char genre[50];
+    float duration_ms; float popularity; int album_id; int id; int rrn;
+};
 
+int music::idaux = 0;
+
+// Construtor principal adaptado com cálculo dinâmico de RRN automático se rrn == -1
 music::music(const string& name, const string& singer, const string& album_name,
              const string& url, const string& genre, float duration_ms, 
-             float popularity, int album_id, int id,int rrn)             
-          : name(name), singer(singer), album_name(album_name), 
-            url(url), genre(genre), duration_ms(duration_ms), 
-            popularity(popularity), album_id(album_id), id(id), rrn(rrn){}
+             float popularity, int album_id, int rrn) 
+            : name(name), singer(singer), album_name(album_name), 
+              url(url), genre(genre), duration_ms(duration_ms), 
+              popularity(popularity), album_id(album_id)
+{
+    id = idaux;
+    idaux++;
+
+    // Se o RRN for omitido ou passado como -1, calcula automaticamente: (724 * id)
+    if (rrn == -1) {
+        this->rrn = sizeof(FileRecordLayout) * id;
+    } else {
+        this->rrn = rrn;
+    }
+}
 
 music::music()
 {
@@ -32,6 +52,7 @@ music::~music()
 
 void music::print() const {
     cout << "ID:         " << id << endl;
+    cout << "RRN (Byte): " << rrn << endl; // Adicionado para você acompanhar o Byte Offset no terminal
     cout << "Nome:       " << name << endl;
     cout << "Artista:    " << singer << endl;
     cout << "Gênero:     " << genre << endl;
@@ -39,7 +60,6 @@ void music::print() const {
     cout << "Duração:    " << duration_ms / 1000.0 << " segundos" << endl;
     cout << "Popularity: " << popularity << endl;
 }
-
 
 bool music::nameCompare(const music& a, const music& b) {
     return a.name == b.name; 

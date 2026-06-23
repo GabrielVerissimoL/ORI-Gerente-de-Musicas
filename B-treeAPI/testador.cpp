@@ -4,10 +4,12 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cstring>
 #include "../databaseClass/database.hpp"
 #include "../MusicClass/music.hpp"
 #include "../B-treeClass/btree.hpp"
 
+// Estrutura física idêntica ao layout gravado pelo conversor (724 bytes)
 struct MusicRecord {
     char name[150]; char singer[150]; char album_name[150]; char url[200]; char genre[50];
     float duration_ms; float popularity; int album_id; int id; int rrn;
@@ -15,14 +17,16 @@ struct MusicRecord {
 
 int main() {
     database dbGlobal;
-    FILE *datain = fopen(FILE_NAME, "rb");
+    
+    // Abre o arquivo binário gerado pelo conversor
+    FILE *datain = fopen(FILE_NAME, "rb"); 
     if (!datain) {
-        std::cerr << "Erro: Arquivo binario nao encontrado!" << std::endl;
+        std::cerr << "[ERRO] Arquivo binario nao encontrado! Execute o conversor primeiro." << std::endl;
         return 1;
     }
 
     std::cout << "====================================================" << std::endl;
-    std::cout << "Lendo " << FILE_NAME << "..." << std::endl;
+    std::cout << "Lendo banco de dados binario..." << std::endl;
     std::cout << "====================================================" << std::endl;
     
     MusicRecord record;
@@ -31,15 +35,23 @@ int main() {
     std::vector<music> bancoEmMemoria;
     bancoEmMemoria.reserve(28500); 
 
+    // IMPORTANTE: Reseta o contador interno de IDs da classe antes de começar a ler
+    // para garantir que o idaux case exatamente com a sequência do binário (0, 1, 2...)
+    music::resetCounter();
+
     while (fread(&record, sizeof(MusicRecord), 1, datain) == 1) {
+        // Criamos o objeto music. Como reiniciamos o contador com resetCounter(), 
+        // o idaux vai gerar exatamente os mesmos IDs (0, 1, 2...) na mesma ordem do arquivo!
+        // Passamos o record.rrn explicitamente para manter o offset original em bytes.
         music m(record.name, record.singer, record.album_name, record.url, record.genre, 
-                record.duration_ms, record.popularity, record.album_id, record.id, record.rrn);
+                record.duration_ms, record.popularity, record.album_id, record.rrn);
+        
         bancoEmMemoria.push_back(m);
         totalCarregado++;
     }
     fclose(datain);
 
-    std::cout << "Inserindo " << totalCarregado << " musicas na Arvore B e Índices..." << std::endl;
+    std::cout << "Indexando " << totalCarregado << " musicas na Arvore B e Indices..." << std::endl;
     for (int i = 0; i < totalCarregado; i++) {
         dbGlobal.insert(bancoEmMemoria[i]);
     }
@@ -90,7 +102,7 @@ int main() {
                     }
                 }
                 if (!achou) {
-                    std::cout << "[INFO] O no foi retornado, mas o ID " << idBusca << " nao estava nesta pagina." << std::endl;
+                    std::cout << "[INFO] O no correspondente foi retornado, mas o ID " << idBusca << " exige busca interna em profundidade." << std::endl;
                 }
             } else {
                 std::cout << "[ERRO] ID " << idBusca << " nao existe na Arvore B." << std::endl;
