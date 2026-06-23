@@ -5,6 +5,9 @@
 #include "../B-treeClass/btree.hpp"
 #include "../MusicClass/music.hpp"
 #include "../databaseClass/database.hpp"
+#include <fstream>
+#include <sstream>
+#include <iostream>
 
 using namespace drogon;
 

@@ -2,8 +2,8 @@
 #include "../MusicClass/music.hpp"
 #pragma once
 
-#define ORDER 3
-#define FILE_NAME "arquivo_de_dados_binário"
+#define ORDER 4
+#define FILE_NAME "arquivo_de_dados_binario"
 
 class BTreeNode {
 public:
@@ -37,33 +37,48 @@ private:
     }
 
     // Split de um nó criança
+    // Split clássico ajustado para cópia segura de objetos com string no C++
     void splitChild(BTreeNode* x, int i) {
         BTreeNode* y = x->children[i];
         BTreeNode* z = new BTreeNode(y->leaf);
-        z->n = ORDER / 2 - 1;
+        
+        // Grau mínimo (t) para ORDER 4 será 2
+        int t = ORDER / 2; 
 
-        for (int j = 0; j < ORDER / 2 - 1; j++)
-            z->keys[j] = y->keys[j + ORDER / 2];
+        z->n = t - 1;
 
-        if (!y->leaf) {
-            for (int j = 0; j < ORDER / 2; j++)
-                z->children[j] = y->children[j + ORDER / 2];
+        // Copia as chaves do final de Y para o início de Z
+        for (int j = 0; j < t - 1; j++) {
+            z->keys[j] = y->keys[j + t];
         }
 
-        y->n = ORDER / 2 - 1;
+        // Copia os filhos correspondentes, se não for folha
+        if (!y->leaf) {
+            for (int j = 0; j < t; j++) {
+                z->children[j] = y->children[j + t];
+                y->children[j + t] = nullptr; // Limpa o ponteiro antigo
+            }
+        }
 
-        for (int j = x->n; j >= i + 1; j--)
+        y->n = t - 1;
+
+        // Move os filhos do pai X para abrir espaço para Z
+        for (int j = x->n; j >= i + 1; j--) {
             x->children[j + 1] = x->children[j];
+        }
 
         x->children[i + 1] = z;
 
-        for (int j = x->n - 1; j >= i; j--)
+        // Move as chaves do pai X para abrir espaço para a chave que vai subir
+        for (int j = x->n - 1; j >= i; j--) {
             x->keys[j + 1] = x->keys[j];
+        }
 
-        x->keys[i] = y->keys[ORDER / 2 - 1];
+        // Sobe a chave do meio para o pai X
+        x->keys[i] = y->keys[t - 1];
         x->n = x->n + 1;
     }
-
+    
     // Inserir em um nó não cheio (Recebe a música inteira)
     void insertNonFull(BTreeNode* x, music k) {
         int i = x->n - 1;
@@ -272,11 +287,16 @@ public:
         if (root->n == ORDER - 1) {
             BTreeNode* s = new BTreeNode(false);
             s->children[0] = root;
+            
+            // Garante que o ponteiro extra gerado esteja limpo
+            s->children[1] = nullptr; 
+            
             root = s;
             splitChild(s, 0);
             insertNonFull(s, k);
-        } else
+        } else {
             insertNonFull(root, k);
+        }
     }
 
     // Busca na árvore (Recebe apenas o ID)
