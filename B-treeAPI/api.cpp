@@ -11,7 +11,7 @@
 
 using namespace drogon;
 
-BTree mainTree;
+// INSTÂNCIA GLOBAL ÚNICA E UNIFICADA
 database dbGlobal;
 
 void populate_json(Json::Value *ret, music current);
@@ -22,234 +22,204 @@ public:
     // Definição das rotas usando macros de alto nível
     METHOD_LIST_BEGIN
         ADD_METHOD_TO(MusicController::SEARCH_BY_ID, "/music/{id}", Get);
-	ADD_METHOD_TO(MusicController::SEARCH_BY_NAME, "/music/{name}", Get);
-	ADD_METHOD_TO(MusicController::SEARCH_BY_SINGER, "/music/{singer}", Get);
-	ADD_METHOD_TO(MusicController::SEARCH_BY_ALBUM, "/music/{album}", Get);
-//	ADD_METHOD_TO(MusicController::SEARCH_BY_POPUL, "/music/{popularity}", Get);
-//	ADD_METHOD_TO(MusicController::DELETE, "/music/{id}", Delete);
+        ADD_METHOD_TO(MusicController::SEARCH_BY_NAME, "/music/name/{name}", Get);      
+        ADD_METHOD_TO(MusicController::SEARCH_BY_SINGER, "/music/singer/{singer}", Get); 
+        ADD_METHOD_TO(MusicController::SEARCH_BY_ALBUM, "/music/album/{album}", Get);   
         ADD_METHOD_TO(MusicController::UPLOAD, "/music", Post);
     METHOD_LIST_END
-	
-    	void SEARCH_BY_ID(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, int id) 
-    	{
+    
+    void SEARCH_BY_ID(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, int id) 
+    {
+        Json::Value ERR;
+        ERR["Erro"] = "Essa musica nao existe.";
+        auto res_ERR = HttpResponse::newHttpJsonResponse(ERR);
+        res_ERR->setStatusCode(k404NotFound);
 
-		Json::Value ERR;
-		ERR["Erro"] = "Essa musica não existe.";
-		auto res_ERR = HttpResponse::newHttpJsonResponse(ERR);
-		res_ERR->setStatusCode(k404NotFound);
+        // Busca usando o método correto da dbGlobal unificada
+        BTreeNode *found = dbGlobal.IdSearch(id);
 
-		BTree bt;
-		BTreeNode *found = bt.search(id);
+        if (found == nullptr)
+        {
+            callback(res_ERR);
+            return;
+        }
+    
+        // Descobre em qual índice do nó está a chave do ID procurado
+        int idx = -1;
+        for (int i = 0; i < found->n; i++)
+        {
+            if (found->keys[i].getid() == id)
+            {
+                idx = i;
+                break;
+            }
+        } 
 
-		printf("%p\n", found);
-		if (found == nullptr)
-		{
-			callback(res_ERR);
-			return ;
-		}
-	
-		for (int i = 0; i < found->n; i++)
-		{
-			if (ORDER > i && &found->keys[i] == nullptr)
-				continue ;
+        if (idx == -1)
+        {
+            callback(res_ERR);
+            return;
+        }
+    
+        int rrn = found->keys[idx].getrrn();
+        if (rrn < 0) 
+        {
+            ERR["Erro"] = "RRN invalido.";
+            res_ERR = HttpResponse::newHttpJsonResponse(ERR);
+            callback(res_ERR);
+            return;
+        }
 
-			std::cout << found->keys[i].getName() << std::endl;
-		}	
+        // Abre o arquivo binário com segurança
+        FILE *dataout = fopen(FILE_NAME, "rb");
+        if (dataout == nullptr)
+        {
+            ERR["Erro"] = "Nao foi possivel abrir o arquivo de dados.";
+            res_ERR = HttpResponse::newHttpJsonResponse(ERR);
+            callback(res_ERR);
+            return;
+        }
 
-		if (found == NULL || &found->keys[id] == NULL)
-		{
-			callback(res_ERR);
-			return ;
-		}
-	
-		int rrn = found->keys[id].getrrn();
-	        if (rrn < 0) 
-		{
-			ERR["Erro"] = "RRN invalido.";
-			res_ERR = HttpResponse::newHttpJsonResponse(ERR);
-        		callback(res_ERR);
-        	   	return;
-        	}
+        // CORREÇÃO CRÍTICA: Lendo para uma struct intermediária (Evita std::bad_alloc)
+        MusicRecord record;
+        long long byteOffset = static_cast<long long>(rrn) * sizeof(MusicRecord);
+        fseek(dataout, byteOffset, SEEK_SET);
 
-		FILE *dataout = fopen(FILE_NAME, "rb");
-		if (dataout == nullptr)
-		{
-			ERR["Erro"] = "Não foi possivel abrir o arquivo de dados.";
-			res_ERR = HttpResponse::newHttpJsonResponse(ERR);
-			callback(res_ERR);
-			return ;
-		}
+        if (fread(&record, sizeof(MusicRecord), 1, dataout) == 0)
+        {
+            fclose(dataout);
+            ERR["Erro"] = "Nao foi possivel ler do arquivo de dados.";
+            res_ERR = HttpResponse::newHttpJsonResponse(ERR);
+            callback(res_ERR);
+            return;
+        }
+        fclose(dataout);
 
-		music *ptr;
-		ptr->setrrn(rrn);
+        // Monta o objeto real music alocado na stack de forma segura
+        music m(record.name, record.singer, record.album_name, record.url, record.genre, record.duration_ms, record.popularity, record.album_id);
+        m.setrrn(record.rrn);
 
-		fseek(dataout, ptr->getrrn(), SEEK_SET);
+        Json::Value Answer;
+        populate_json(&Answer, m);
 
-		if (fread(ptr, sizeof(music), 1, dataout) == 0)
-		{
-			fclose(dataout);
-			ERR["Erro"] = "Não foi possivel ler do arquivo de dados.";
-			res_ERR = HttpResponse::newHttpJsonResponse(ERR);
-			callback(res_ERR);
-			return ;
-		}
-		
-
-
-
-        	Json::Value Answer;
-		populate_json(&Answer, *ptr);
-
-		/*
-		Answer["Name"] 		= ptr->getName();
-		Answer["Singer"] 	= ptr->getSinger();
-		Answer["Album Name"] 	= ptr->getalbum_name();
-		Answer["URL"] 		= ptr->getUrl();
-		Answer["Genre"]		= ptr->getGenre();
-		Answer["Duration"]	= ptr->getDuration();
-		Answer["Popularity"]	= ptr->getPopularity();
-		*/
-
-		fclose(dataout);
-
-       	 	auto res = HttpResponse::newHttpJsonResponse(Answer);
-	        callback(res);
-
-		return ;
+        auto res = HttpResponse::newHttpJsonResponse(Answer);
+        callback(res);
+        return;
     }
 
+    void SEARCH_BY_NAME(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, std::string name) 
+    {
+        // CORREÇÃO: Buscando na dbGlobal compartilhada
+        std::vector<music> msc = dbGlobal.NameSearch(name);
+        Json::Value Answer(Json::arrayValue);
+        Json::Value Musics;
+    
+        for (size_t i = 0; i < msc.size(); i++)
+        {
+            populate_json(&Musics, msc[i]);
+            Answer.append(Musics);
+        }
 
-    	void SEARCH_BY_NAME(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, std::string name) 
-	{
-	
-		database db;
-		std::vector<music> msc = db.NameSearch(name);
-		Json::Value Answer(Json::arrayValue);
-		Json::Value Musics;
-	
+        auto res = HttpResponse::newHttpJsonResponse(Answer); 
+        callback(res);
+        return;
+    }
 
-		for (int i = 0; i < msc.size(); i++)
-		{
-			populate_json(&Musics, msc[i]);
-			Answer.append(Musics);
-		}
+    void SEARCH_BY_SINGER(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, std::string singer) 
+    {
+        // CORREÇÃO: Buscando na dbGlobal compartilhada
+        std::vector<music> msc = dbGlobal.SingerSearch(singer);
+        Json::Value Answer(Json::arrayValue);
+        Json::Value Musics;
+    
+        for (size_t i = 0; i < msc.size(); i++)
+        {
+            populate_json(&Musics, msc[i]);
+            Answer.append(Musics);
+        }
 
-		auto res = HttpResponse::newHttpJsonResponse(Answer); 
-		callback(res);
-		return ;
-	}
+        auto res = HttpResponse::newHttpJsonResponse(Answer); 
+        callback(res);
+        return;
+    }
 
+    void SEARCH_BY_ALBUM(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, std::string album) 
+    {
+        // CORREÇÃO: Buscando na dbGlobal compartilhada
+        std::vector<music> msc = dbGlobal.Album_nameSearch(album);
+        Json::Value Answer(Json::arrayValue);
+        Json::Value Musics;
+    
+        for (size_t i = 0; i < msc.size(); i++)
+        {
+            populate_json(&Musics, msc[i]);
+            Answer.append(Musics);
+        }
 
-	void SEARCH_BY_SINGER(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, std::string singer) 
-	{
+        auto res = HttpResponse::newHttpJsonResponse(Answer); 
+        callback(res);
+        return;
+    }
 
-		database db;
-		std::vector<music> msc = db.SingerSearch(singer);
-		Json::Value Answer(Json::arrayValue);
-		Json::Value Musics;
-	
-		for (int i = 0; i < msc.size(); i++)
-		{
-			populate_json(&Musics, msc[i]);
-			Answer.append(Musics);
-		}
+    void UPLOAD(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback) 
+    {
+        auto res_ERR = HttpResponse::newHttpResponse();
+        res_ERR->setStatusCode(k400BadRequest);
 
-	
-		auto res = HttpResponse::newHttpJsonResponse(Answer); 
-		callback(res);
-		return ;
-    	}
+        auto Music_json = req->getJsonObject();
+        if (!Music_json) 
+        {
+            callback(res_ERR);
+            return;
+        }
 
-    	void SEARCH_BY_GENRE(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, std::string genre) 
-	{
-		
-		database db;
-		std::vector<music> msc = db.GenreSearch(genre);
-		Json::Value Answer(Json::arrayValue);
-		Json::Value Musics;
-	
-		for (int i = 0; i < msc.size(); i++)
-		{
-			populate_json(&Musics, msc[i]);
-			Answer.append(Musics);
-		}
+        std::string name    = (*Music_json)["name"].asString();
+        std::string singer  = (*Music_json)["singer"].asString();
+        std::string album   = (*Music_json)["album_name"].asString();
+        std::string url     = (*Music_json)["url"].asString();
+        std::string genre   = (*Music_json)["genre"].asString();
+        float duration      = (*Music_json)["duration_ms"].asFloat();
+        float popularity    = (*Music_json)["popularity"].asFloat();
+        int album_id        = (*Music_json)["album_id"].asInt();
+    
+        // Cria o objeto music de forma limpa
+        music m(name, singer, album, url, genre, duration, popularity, album_id);
 
-	
-		auto res = HttpResponse::newHttpJsonResponse(Answer); 
-		callback(res);
-		return ;
-	}
-	
+        // Insere na dbGlobal unificada
+        dbGlobal.insert(m);
 
-    	void SEARCH_BY_ALBUM(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, std::string album) 
-	{
-		
-		database db;
-		std::vector<music> msc = db.Album_nameSearch(album);
-		Json::Value Answer(Json::arrayValue);
-		Json::Value Musics;
-	
-		for (int i = 0; i < msc.size(); i++)
-		{
-			populate_json(&Musics, msc[i]);
-			Answer.append(Musics);
-		}
+        std::cout << "[SERVER] Insercao Realizada com sucesso. ID: " << m.getid() << std::endl;
 
-	
-		auto res = HttpResponse::newHttpJsonResponse(Answer); 
-		callback(res);
-		return ;
-	}
-
-    	void UPLOAD(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback) 
-	{
-	
-        	auto res_ERR = HttpResponse::newHttpResponse();
-        	res_ERR->setStatusCode(k400BadRequest);
-
-	        auto Music_json = req->getJsonObject();
-        	if (!Music_json) 
-		{
-	            callback(res_ERR);
-        	    return;
-        	}
-
-
-		std::string name 	= (*Music_json)["name"].asString();
-		std::string singer 	= (*Music_json)["singer"].asString();
-		std::string album 	= (*Music_json)["album_name"].asString();
-		std::string url		= (*Music_json)["url"].asString();
-		std::string genre	= (*Music_json)["genre"].asString();
-		float duration		= (*Music_json)["duration_ms"].asFloat();
-		float popularity	= (*Music_json)["popularity"].asFloat();
-		int album_id		= (*Music_json)["album_id"].asInt();
-	
-		// objeto music criado
-		music m(name, singer, album, url, genre, duration, popularity, album_id);
-
-		dbGlobal.insert(m);
-
-		return ;
-	    }
+        Json::Value OK;
+        OK["Status"] = "Musica adicionada com sucesso!";
+        OK["id"] = m.getid();
+        OK["rrn"] = m.getrrn();
+        
+        auto res = HttpResponse::newHttpJsonResponse(OK);
+        res->setStatusCode(k201Created);
+        
+        callback(res);
+        return;
+    }
 };
 
 void populate_json(Json::Value *ret, music current)
-{	
-
-	(*ret)["Name"] 		= current.getName();
-	(*ret)["Singer"] 	= current.getSinger();
-	(*ret)["Album"]		= current.getalbum_name();
-	(*ret)["Genre"]		= current.getGenre();
-	(*ret)["URL"]		= current.getUrl();
-	(*ret)["Popularity"]	= current.getPopularity();
-	(*ret)["Duration"]	= current.getDuration();
-
-	return ;
+{   
+    (*ret)["Name"]       = current.getName();
+    (*ret)["Singer"]     = current.getSinger();
+    (*ret)["Album"]      = current.getalbum_name();
+    (*ret)["Genre"]      = current.getGenre();
+    (*ret)["URL"]        = current.getUrl();
+    (*ret)["Popularity"] = current.getPopularity();
+    (*ret)["Duration"]   = current.getDuration();
 }
 
 int main() {
+    // 1. Recupera tudo o que já existe no arquivo binário para a RAM antes de ligar o servidor
+    dbGlobal.load_from_disk();
 
-	app()
+    // 2. Inicializa o Framework Drogon
+    app()
         .addListener("0.0.0.0", 5000)
         .setThreadNum(1) 
         .run();

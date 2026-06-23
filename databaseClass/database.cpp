@@ -22,16 +22,60 @@ void database::removerIdDoVetor(std::vector<int>& vetor, int id)
     vetor.erase(std::remove(vetor.begin(), vetor.end(), id), vetor.end());
 }
 
+void database::load_from_disk() 
+{
+    FILE* datafile = fopen(FILE_NAME, "rb");
+    if (!datafile) {
+        std::cout << "[INFO] Nenhum arquivo de dados encontrado para carregar. Iniciando banco vazio." << std::endl;
+        idaux = 0; // Se não tem arquivo, começamos do ID 0
+        return;
+    }
+
+    std::cout << "[CARREGANDO] Lendo registros do arquivo binario..." << std::endl;
+    
+    MusicRecord record;
+    int contador = 0;
+
+    // Lê struct por struct sequencialmente até o fim do arquivo
+    while (fread(&record, sizeof(MusicRecord), 1, datafile) == 1) {
+        
+        // Se no seu projeto você implementou "remoção lógica" (ex: ID -1 para deletados),
+        // adicione um IF aqui para pular registros excluídos.
+        
+        // 1. Reconstrói o objeto music
+        music m(record.name, record.singer, record.album_name, record.url, record.genre, record.duration_ms, record.popularity, record.album_id);
+
+        // 2. Insere na Árvore B na memória RAM
+        btree.insert(m);
+
+        // 3. Insere nos mapas de índices secundários
+        int id_musica = m.getid(); // ou m.getrrn(), dependendo de como você mapeou as buscas
+        indiceNomes[tolowercase(m.getName())].push_back(id_musica);
+        indicecantores[tolowercase(m.getSinger())].push_back(id_musica);
+        indiceAlbuns[tolowercase(m.getalbum_name())].push_back(id_musica);
+        indiceGeneros[tolowercase(m.getGenre())].push_back(id_musica);
+
+        idaux++;
+        contador++;
+        
+        // Garante que o idaux global fique sempre à frente do maior ID lido
+        
+    }
+
+    fclose(datafile);
+    std::cout << "[SUCESSO] Carregamento concluido! " << contador << " musicas indexadas na RAM. Proximo ID automatico: " << idaux << std::endl;
+}
+
 void database::insert(music m) 
 {
+    
     int id = m.getrrn();
 
-    if(id == idaux - 1){
+    if(id == idaux){
+       
         FILE* dataout = fopen(FILE_NAME, "rb+");
     
         if (!dataout) {
-            std::cerr << "[ERRO] Nao foi possivel abrir o arquivo!" << std::endl;
-        
             return;
         }
 
@@ -61,7 +105,7 @@ void database::insert(music m)
         // Não esqueça de fechar no final se abrir com sucesso
         fclose(dataout);
     }
-        
+
     btree.insert(m);
 
     //indices para nome da musica, cantor, nome do album e genero (Respectivamente)
@@ -69,6 +113,8 @@ void database::insert(music m)
     indicecantores[tolowercase(m.getSinger())].push_back(id);
     indiceAlbuns[tolowercase(m.getalbum_name())].push_back(id);
     indiceGeneros[tolowercase(m.getGenre())].push_back(id);
+
+     idaux++;
 
 }
 

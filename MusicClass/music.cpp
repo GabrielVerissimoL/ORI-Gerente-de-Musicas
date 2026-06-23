@@ -16,8 +16,6 @@ music::music(const string& name, const string& singer, const string& album_name,
     this->id = idaux;
     this->rrn = idaux;
     
-    // Incrementa para a próxima música que for criada
-    idaux++;
 }
 
 music::music()

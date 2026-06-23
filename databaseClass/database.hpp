@@ -22,6 +22,8 @@ public:
 
     void insert(music m);
 
+    void load_from_disk();
+
     //busca por ID
     BTreeNode* IdSearch(int id);
 
