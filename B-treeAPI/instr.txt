@@ -1,0 +1,1 @@
+g++ api.cpp ../MusicClass/music.cpp ../databaseClass/database.cpp -o api -I/usr/include/jsoncpp -ldrogon -ltrantor -ljsoncpp -luuid -lssl -lcrypto -lz -lpthread
