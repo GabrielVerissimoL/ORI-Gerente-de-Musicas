@@ -1,60 +1,53 @@
 // ============================================================================
-// TESTADOR INTERATIVO DEFINITIVO: Busca por ID/Artista e Cadastro via Terminal
+// TESTADOR INTERATIVO: Busca por ID/Artista/Nome/Album/Genero e Cadastro via Terminal
 // ============================================================================
 #include <iostream>
 #include <vector>
 #include <string>
-#include <fstream> // Adicionado para suportar fstream ao salvar música nova
 #include "../databaseClass/database.hpp"
 #include "../MusicClass/music.hpp"
 #include "../B-treeClass/btree.hpp"
 
+void imprimirResultados(const std::vector<music>& resultados) {
+    if (resultados.empty()) {
+        std::cout << "[AVISO] Nenhum resultado encontrado." << std::endl;
+        return;
+    }
+
+    std::cout << "[OK] Foram encontradas " << resultados.size() << " musicas!" << std::endl;
+    std::cout << "----------------------------------------------" << std::endl;
+    for (size_t i = 0; i < resultados.size(); i++) {
+        std::cout << "Resultado #" << i + 1 << ":" << std::endl;
+        resultados[i].print();
+        std::cout << "----------------------------------------------" << std::endl;
+        
+        if ((i + 1) % 5 == 0 && i + 1 < resultados.size()) {
+            std::cout << "Pressione ENTER para ver mais resultados...";
+            std::cin.get();
+        }
+    }
+}
+
 int main() {
     database dbGlobal;
-    FILE *datain = fopen(FILE_NAME, "rb");
-    if (!datain) {
-        std::cerr << "Erro: Arquivo binario nao encontrado! Criando um novo..." << std::endl;
-        datain = fopen(FILE_NAME, "wb");
-        if (datain) fclose(datain);
-        datain = fopen(FILE_NAME, "rb");
-    }
-
-    std::cout << "====================================================" << std::endl;
-    std::cout << "Lendo " << FILE_NAME << "..." << std::endl;
-    std::cout << "====================================================" << std::endl;
     
-    MusicRecord record;
-    int totalCarregado = 0;
-
-    std::vector<music> bancoEmMemoria;
-    bancoEmMemoria.reserve(28500); 
-
-    if (datain) {
-        while (fread(&record, sizeof(MusicRecord), 1, datain) == 1) {
-            music m(record.name, record.singer, record.album_name, record.url, record.genre, 
-                    record.duration_ms, record.popularity, record.album_id);
-            bancoEmMemoria.push_back(m);
-            totalCarregado++;
-        }
-        fclose(datain);
-    }
-
-    std::cout << "Inserindo " << totalCarregado << " musicas na Arvore B e Índices..." << std::endl;
-    for (int i = 0; i < totalCarregado; i++) {
-        dbGlobal.insert(bancoEmMemoria[i]);
-    }
+    // Usa o metodo unificado de carga (reconstroi Arvore B + indices secundarios)
+    dbGlobal.load_from_disk();
 
     std::cout << "\n[SUCESSO] Sistema pronto para consultas!" << std::endl;
 
     int opcao = 0;
-    while (opcao != 4) { // Alterado para 4 para suportar a nova opção do menu
+    while (opcao != 7) {
         std::cout << "\n==============================================" << std::endl;
         std::cout << "           GERENTE DE MÚSICAS - MENU          " << std::endl;
         std::cout << "==============================================" << std::endl;
         std::cout << "1. Buscar Música por ID (Árvore B)" << std::endl;
         std::cout << "2. Buscar Músicas por Artista (Índice Secundário)" << std::endl;
-        std::cout << "3. Adicionar Nova Música (Teclado e Arquivo)" << std::endl;
-        std::cout << "4. Sair do Programa" << std::endl;
+        std::cout << "3. Buscar Músicas por Nome" << std::endl;
+        std::cout << "4. Buscar Músicas por Álbum" << std::endl;
+        std::cout << "5. Buscar Músicas por Gênero" << std::endl;
+        std::cout << "6. Adicionar Nova Música" << std::endl;
+        std::cout << "7. Sair do Programa" << std::endl;
         std::cout << "Escolha uma opcao: ";
         
         if (!(std::cin >> opcao)) {
@@ -83,7 +76,7 @@ int main() {
             if (noEncontrado != nullptr) {
                 bool achou = false;
                 for (int i = 0; i < noEncontrado->n; i++) {
-                    if (noEncontrado->keys[i].getid() == idBusca) { // Mantido getid() original
+                    if (noEncontrado->keys[i].getid() == idBusca) {
                         std::cout << "[OK] Musica encontrada!" << std::endl;
                         noEncontrado->keys[i].print();
                         achou = true;
@@ -98,34 +91,34 @@ int main() {
             }
 
         } else if (opcao == 2) {
-            std::string artistaBusca;
+            std::string busca;
             std::cout << "Digite o nome (ou parte do nome) do artista: ";
-            std::getline(std::cin, artistaBusca);
-
-            std::cout << "\n--- Buscando '" << artistaBusca << "' no Indice Secundario ---" << std::endl;
-            std::vector<music> resultados = dbGlobal.SingerSearch(artistaBusca);
-            
-            if (!resultados.empty()) {
-                std::cout << "[OK] Foram encontradas " << resultados.size() << " musicas!" << std::endl;
-                std::cout << "----------------------------------------------" << std::endl;
-                for (size_t i = 0; i < resultados.size(); i++) {
-                    std::cout << "Resultado #" << i + 1 << ":" << std::endl;
-                    resultados[i].print();
-                    std::cout << "----------------------------------------------" << std::endl;
-                    
-                    if ((i + 1) % 5 == 0 && i + 1 < resultados.size()) {
-                        std::cout << "Pressione ENTER para ver mais resultados...";
-                        std::cin.get();
-                    }
-                }
-            } else {
-                std::cout << "[AVISO] Nenhuma musica encontrada para o artista '" << artistaBusca << "'." << std::endl;
-            }
+            std::getline(std::cin, busca);
+            std::cout << "\n--- Buscando '" << busca << "' no Indice de Artistas ---" << std::endl;
+            imprimirResultados(dbGlobal.SingerSearch(busca));
 
         } else if (opcao == 3) {
-            // ========================================================================
-            // OPÇÃO DE CADASTRO DE MÚSICA VIA TERMINAL
-            // ========================================================================
+            std::string busca;
+            std::cout << "Digite o nome (ou parte do nome) da musica: ";
+            std::getline(std::cin, busca);
+            std::cout << "\n--- Buscando '" << busca << "' no Indice de Nomes ---" << std::endl;
+            imprimirResultados(dbGlobal.NameSearch(busca));
+
+        } else if (opcao == 4) {
+            std::string busca;
+            std::cout << "Digite o nome (ou parte do nome) do album: ";
+            std::getline(std::cin, busca);
+            std::cout << "\n--- Buscando '" << busca << "' no Indice de Albums ---" << std::endl;
+            imprimirResultados(dbGlobal.Album_nameSearch(busca));
+
+        } else if (opcao == 5) {
+            std::string busca;
+            std::cout << "Digite o genero musical: ";
+            std::getline(std::cin, busca);
+            std::cout << "\n--- Buscando '" << busca << "' no Indice de Generos ---" << std::endl;
+            imprimirResultados(dbGlobal.GenreSearch(busca));
+
+        } else if (opcao == 6) {
             std::string nome, artista, album, url, genero;
             float duracao, popularidade;
             int album_id;
@@ -159,19 +152,19 @@ int main() {
             // Cria o objeto música (o construtor trata o idaux interno para ID e RRN)
             music novaMusica(nome, artista, album, url, genero, duracao, popularidade, album_id);
 
-            // 1. Insere na Árvore B e Mapas Secundários
-            dbGlobal.insert(novaMusica);
+            // Insere na Árvore B, Mapas Secundários e disco
+            if (dbGlobal.insert(novaMusica)) {
+                std::cout << "[SUCESSO] Musica inserida com ID: " << novaMusica.getid() << std::endl;
+            } else {
+                std::cout << "[ERRO] Falha ao inserir musica no disco." << std::endl;
+            }
 
-        } else if (opcao == 4) {
+        } else if (opcao == 7) {
             std::cout << "Encerrando o testador interativo. Ate logo!" << std::endl;
         } else {
             std::cout << "[ERRO] Opcao invalida! Tente novamente." << std::endl;
         }
     }
 
-    fclose(datain);
-
     return 0;
 }
-
-//     g++ -Wall -Wextra -g3 -I"s:\Codigos\ORI-Gerente-de-Musicas\MusicClass" "s:\Codigos\ORI-Gerente-de-Musicas\B-treeAPI\testador.cpp" "s:\Codigos\ORI-Gerente-de-Musicas\MusicClass\music.cpp" "s:\Codigos\ORI-Gerente-de-Musicas\databaseClass\database.cpp" -o "s:\Codigos\ORI-Gerente-de-Musicas\B-treeAPI\testador.exe"

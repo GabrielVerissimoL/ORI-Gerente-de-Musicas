@@ -14,7 +14,7 @@ using namespace drogon;
 // INSTÂNCIA GLOBAL ÚNICA E UNIFICADA
 database dbGlobal;
 
-void populate_json(Json::Value *ret, music current);
+void populate_json(Json::Value *ret, const music& current);
 
 class MusicController : public HttpController<MusicController> {
 public:
@@ -24,7 +24,8 @@ public:
         ADD_METHOD_TO(MusicController::SEARCH_BY_ID, "/music/{id}", Get);
         ADD_METHOD_TO(MusicController::SEARCH_BY_NAME, "/music/name/{name}", Get);      
         ADD_METHOD_TO(MusicController::SEARCH_BY_SINGER, "/music/singer/{singer}", Get); 
-        ADD_METHOD_TO(MusicController::SEARCH_BY_ALBUM, "/music/album/{album}", Get);   
+        ADD_METHOD_TO(MusicController::SEARCH_BY_ALBUM, "/music/album/{album}", Get);
+        ADD_METHOD_TO(MusicController::SEARCH_BY_GENRE, "/music/genre/{genre}", Get);   
         ADD_METHOD_TO(MusicController::UPLOAD, "/music", Post);
     METHOD_LIST_END
     
@@ -97,6 +98,7 @@ public:
 
         // Monta o objeto real music alocado na stack de forma segura
         music m(record.name, record.singer, record.album_name, record.url, record.genre, record.duration_ms, record.popularity, record.album_id);
+        m.setid(record.id);
         m.setrrn(record.rrn);
 
         Json::Value Answer;
@@ -161,6 +163,23 @@ public:
         return;
     }
 
+    void SEARCH_BY_GENRE(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, std::string genre) 
+    {
+        std::vector<music> msc = dbGlobal.GenreSearch(genre);
+        Json::Value Answer(Json::arrayValue);
+        Json::Value Musics;
+    
+        for (size_t i = 0; i < msc.size(); i++)
+        {
+            populate_json(&Musics, msc[i]);
+            Answer.append(Musics);
+        }
+
+        auto res = HttpResponse::newHttpJsonResponse(Answer); 
+        callback(res);
+        return;
+    }
+
     void UPLOAD(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback) 
     {
         auto res_ERR = HttpResponse::newHttpResponse();
@@ -203,8 +222,9 @@ public:
     }
 };
 
-void populate_json(Json::Value *ret, music current)
+void populate_json(Json::Value *ret, const music& current)
 {   
+    (*ret)["ID"]         = current.getid();
     (*ret)["Name"]       = current.getName();
     (*ret)["Singer"]     = current.getSinger();
     (*ret)["Album"]      = current.getalbum_name();

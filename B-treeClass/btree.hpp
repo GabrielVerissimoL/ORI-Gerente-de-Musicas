@@ -1,6 +1,7 @@
+#pragma once
+
 #include <iostream>
 #include "../MusicClass/music.hpp"
-#pragma once
 
 #define ORDER 4
 #define FILE_NAME "B-treeAPI/arquivo_de_dados_binario"
@@ -80,7 +81,7 @@ private:
     }
     
     // Inserir em um nó não cheio (Recebe a música inteira)
-    void insertNonFull(BTreeNode* x, music k) {
+    void insertNonFull(BTreeNode* x, const music& k) {
         int i = x->n - 1;
 
         if (x->leaf) {
@@ -283,7 +284,7 @@ public:
     BTree() { root = new BTreeNode(true); }
 
     // Insere na árvore (Continua recebendo a música inteira)
-    void insert(music k) {
+    void insert(const music& k) {
         if (root->n == ORDER - 1) {
             BTreeNode* s = new BTreeNode(false);
             s->children[0] = root;
