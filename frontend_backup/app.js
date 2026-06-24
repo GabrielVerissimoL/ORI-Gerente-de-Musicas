@@ -24,16 +24,7 @@ const dom = {
   albumsCount: document.querySelector("#albumsCount"),
   songsCount: document.querySelector("#songsCount"),
   apiStatus: document.querySelector("#apiStatus"),
-  apiCard: document.querySelector(".sidebar-card"),
-  artistView: document.querySelector("#artistView"),
-  artistBack: document.querySelector("#artistBack"),
-  artistViewCover: document.querySelector("#artistViewCover"),
-  artistViewInitials: document.querySelector("#artistViewInitials"),
-  artistViewName: document.querySelector("#artistViewName"),
-  artistViewMeta: document.querySelector("#artistViewMeta"),
-  artistViewCount: document.querySelector("#artistViewCount"),
-  artistViewSongs: document.querySelector("#artistViewSongs"),
-  artistViewStatus: document.querySelector("#artistViewStatus")
+  apiCard: document.querySelector(".sidebar-card")
 };
 
 const palettes = [
@@ -46,7 +37,6 @@ const palettes = [
 ];
 
 let searchSequence = 0;
-let artistSequence = 0;
 
 function createElement(tag, className, text) {
   const element = document.createElement(tag);
@@ -113,10 +103,6 @@ function plural(count, singular, pluralForm) {
   return `${count} ${count === 1 ? singular : pluralForm}`;
 }
 
-function sameText(a, b) {
-  return String(a).localeCompare(String(b), "pt-BR", { sensitivity: "base" }) === 0;
-}
-
 function validHttpUrl(value) {
   try {
     const parsed = new URL(value);
@@ -150,8 +136,6 @@ function setApiStatus(connected, message) {
 }
 
 function showLoading(query) {
-  artistSequence += 1;
-  dom.artistView.hidden = true;
   dom.hero.hidden = true;
   dom.empty.hidden = true;
   dom.results.hidden = false;
@@ -185,7 +169,7 @@ function createArtistCard(artist, songs) {
   card.append(cover, createElement("h4", "", artist), createElement("p", "", genres || "Artista"));
   card.append(createElement("div", "meta", plural(artistSongs.length, "música encontrada", "músicas encontradas")));
 
-  const action = () => openArtist(artist);
+  const action = () => runSearch(artist);
   card.addEventListener("click", action);
   card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") { event.preventDefault(); action(); }
@@ -240,61 +224,6 @@ function createSongItem(song, index) {
 
   item.append(number, main, album, genre, duration, link);
   return item;
-}
-
-
-async function openArtist(artist) {
-  const currentSequence = ++artistSequence;
-  const encoded = encodeURIComponent(artist);
-
-  dom.hero.hidden = true;
-  dom.results.hidden = true;
-  dom.empty.hidden = true;
-  dom.artistView.hidden = false;
-  dom.artistViewName.textContent = artist;
-  dom.artistViewInitials.textContent = initials(artist);
-  dom.artistViewMeta.textContent = "Carregando catálogo do artista…";
-  dom.artistViewCount.textContent = "";
-  dom.artistViewSongs.replaceChildren();
-  dom.artistViewStatus.textContent = "Buscando músicas…";
-  applyPalette(dom.artistViewCover, artist);
-  setStatus("");
-  dom.artistView.scrollIntoView({ behavior: "smooth", block: "start" });
-
-  try {
-    const responseSongs = await apiGet(`/music/singer/${encoded}`);
-    if (currentSequence !== artistSequence) return;
-
-    const exactSongs = responseSongs.filter((song) => sameText(song.singer, artist));
-    const songs = exactSongs.length > 0 ? exactSongs : responseSongs;
-    const genres = uniqueBy(songs, (song) => song.genre)
-      .map((song) => song.genre)
-      .filter(Boolean)
-      .slice(0, 3);
-
-    dom.artistViewMeta.textContent = genres.length > 0 ? genres.join(" • ") : "Artista";
-    dom.artistViewCount.textContent = plural(songs.length, "música", "músicas");
-    dom.artistViewStatus.textContent = songs.length > 0
-      ? ""
-      : "Nenhuma música foi encontrada para este artista.";
-    dom.artistViewSongs.replaceChildren(...songs.map(createSongItem));
-    setApiStatus(true, "Backend conectado");
-  } catch (error) {
-    if (currentSequence !== artistSequence) return;
-    dom.artistViewMeta.textContent = "Não foi possível carregar o artista";
-    dom.artistViewCount.textContent = "";
-    dom.artistViewStatus.textContent = error.message || "Falha ao consultar o backend.";
-    setApiStatus(false, "Backend desconectado");
-  }
-}
-
-function closeArtist() {
-  artistSequence += 1;
-  dom.artistView.hidden = true;
-  dom.results.hidden = false;
-  dom.empty.hidden = true;
-  setStatus("Voltou aos resultados da pesquisa.");
-  dom.results.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderResults(query, artistsSource, albumsSource, songs) {
@@ -375,8 +304,6 @@ async function runSearch(forcedQuery) {
 
 function resetSearch() {
   searchSequence += 1;
-  artistSequence += 1;
-  dom.artistView.hidden = true;
   dom.input.value = "";
   dom.clear.hidden = true;
   dom.hero.hidden = false;
@@ -403,10 +330,6 @@ async function checkApi() {
 dom.form.addEventListener("submit", (event) => { event.preventDefault(); runSearch(); });
 dom.input.addEventListener("input", () => { dom.clear.hidden = dom.input.value.length === 0; });
 dom.clear.addEventListener("click", resetSearch);
-dom.artistBack.addEventListener("click", closeArtist);
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !dom.artistView.hidden) closeArtist();
-});
 document.querySelectorAll("[data-focus-search]").forEach((button) => {
   button.addEventListener("click", () => { dom.input.focus(); dom.input.scrollIntoView({ behavior: "smooth", block: "center" }); });
 });
