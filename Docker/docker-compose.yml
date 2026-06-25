@@ -2,21 +2,19 @@
 
 # sem banco de dados
 services:
-  btree:
+  app:
 
     # configs build
     build: 
-      context: .
-      network: host
+      context: ../
+      dockerfile: Docker/Dockerfile
+      
+    network_mode: "host"
 
     # portas de acesso (user:docker)
     ports:
       - "5000:5000"
-
+      - "3000:3000"
     # diretorios a serem criados
     volumes:
-      - ./:/bpi
-
-
-
-
+      - ../:/bpi

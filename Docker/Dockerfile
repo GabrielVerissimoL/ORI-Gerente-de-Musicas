@@ -4,17 +4,18 @@ FROM gcc:14
 ENV TZ=America/Sao_Paulo
 
 # diretório base dentro do docker
-WORKDIR bpi/
+WORKDIR /bpi
 
 # conteúdo presente no diretório interno
-COPY ../libs.txt .
+COPY Docker/libs.txt .
 
 # bibliotecas disponíveis no container (docker)
-RUN sudo apt-get update 
-RUN sudo apt-get install  -y --no-install-recommends < ../libs.txt
+RUN apt-get update 
+RUN apt-get install  -y --no-install-recommends $(cat libs.txt)
 
 # porta de acesso ao container
 EXPOSE 5000
 
-# executa o código da API
-RUN ["./APIexe"]
+COPY . .
+
+CMD ["/bin/bash", "-c", "make && chmod +x ./frontend/start-frontend.sh ./bin/projeto ./start-all.sh && ./start-all.sh"]
