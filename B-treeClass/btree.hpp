@@ -3,8 +3,8 @@
 #include <iostream>
 #include "../MusicClass/music.hpp"
 
-#define ORDER 4
-#define FILE_NAME "B-treeAPI/arquivo_de_dados_binario"
+#define ORDER 6
+#define FILE_NAME "Data/arquivo_de_dados_binario"
 
 class BTreeNode {
 public:

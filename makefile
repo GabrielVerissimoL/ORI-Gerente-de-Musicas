@@ -7,7 +7,7 @@ TARGET = bin/projeto
 ALL_SRCS = $(shell find . -name "*.cpp")
 
 # 2. Filtra e REMOVE os arquivos de teste/conversão que causam o "multiple definition of main"
-SRCS = $(filter-out ./B-treeAPI/testador.cpp ./B-treeAPI/conversor.cpp, $(ALL_SRCS))
+SRCS = $(filter-out ./Data/Csv_to_bin.cpp, $(ALL_SRCS))
 
 # Descobre os diretórios de inclusão automaticamente
 INCLUDES = $(shell find . -name "*.hpp" -exec dirname {} \; | sort -u | sed 's/^/-I/')
