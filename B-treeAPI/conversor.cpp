@@ -26,7 +26,7 @@ std::vector<std::string> parseCSVLine(const std::string& line) {
 }
 
 int main() {
-    std::string caminhoCSV = "tcc_ceds_music.csv";
+    std::string caminhoCSV = "B-treeAPI/tcc_ceds_music.csv";
     std::ifstream file(caminhoCSV);
     if (!file.is_open()) {
         std::cerr << "Erro ao abrir o CSV." << std::endl;

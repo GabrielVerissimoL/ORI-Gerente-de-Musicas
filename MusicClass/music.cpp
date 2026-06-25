@@ -19,23 +19,11 @@ music::music(const string& name, const string& singer, const string& album_name,
 }
 
 music::music()
+    : name(""), singer(""), album_name(""), url(""), genre(""),
+      duration_ms(0), popularity(0), album_id(-1), id(-1), rrn(-1)
 {
-    name = "null";
-    singer = "massaro";
-    album_name = "massaros";
-    url = "invalido";
-    genre = "naomusical";
-    duration_ms = 0;
-    popularity = 0;
-    album_id = -1;
-    id = -1;
-    rrn = -1;
 }
 
-music::~music() 
-{
-    //std string libera sozinho
-}
 
 void music::print() const {
     cout << "ID:         " << id << endl;

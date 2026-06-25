@@ -31,17 +31,35 @@ class FrontendHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802 - nome exigido por BaseHTTPRequestHandler
         if self.path.startswith("/api/"):
-            self.proxy_get()
+            self._proxy_request("GET")
             return
         super().do_GET()
 
-    def proxy_get(self) -> None:
+    def do_POST(self) -> None:  # noqa: N802
+        if self.path.startswith("/api/"):
+            self._proxy_request("POST")
+            return
+        self.send_response(404)
+        self.end_headers()
+
+    def _proxy_request(self, method: str) -> None:
         backend_path = self.path[len("/api") :]
         target = f"{BACKEND_URL}{backend_path}"
+
+        # Lê o corpo da requisição para POST
+        data = None
+        headers = {"Accept": "application/json", "User-Agent": "RubraFrontend/1.0"}
+        if method == "POST":
+            content_length = int(self.headers.get("Content-Length", 0))
+            data = self.rfile.read(content_length) if content_length > 0 else None
+            content_type = self.headers.get("Content-Type", "application/json")
+            headers["Content-Type"] = content_type
+
         request = urllib.request.Request(
             target,
-            headers={"Accept": "application/json", "User-Agent": "RubraFrontend/1.0"},
-            method="GET",
+            data=data,
+            headers=headers,
+            method=method,
         )
 
         try:

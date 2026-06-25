@@ -38,7 +38,7 @@ public:
     
     music ();
 
-    ~music();
+
 
 
     void print() const;
@@ -61,5 +61,6 @@ public:
     int getid() const {return id;}
     int getrrn() const {return rrn;}
     
-    void setrrn(int nrrn) {this->rrn = nrrn; return;}
+    void setrrn(int nrrn) { this->rrn = nrrn; }
+    void setid(int nid) { this->id = nid; }
 };

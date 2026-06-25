@@ -18,9 +18,10 @@ private:
     std::map<std::string, std::vector<int>> indiceGeneros;
 
     void removerIdDoVetor(std::vector<int>& vetor, int id);
+    std::vector<music> searchByIndex(std::map<std::string, std::vector<int>>& indice, const std::string& query, const std::string& label);
 public:
 
-    void insert(music m);
+    bool insert(music m);
 
     void load_from_disk();
 
