@@ -1,8 +1,10 @@
-buildessential
+build-essential
 git
 cmake
 g++
-jsoncpp-dev
-libuuid-dev
+libjsoncpp-dev
+uuid-dev
 zlib1g-dev
 libssl-dev
+drogon
+libdrogon-dev
