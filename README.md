@@ -74,8 +74,8 @@ Struct de tamanho fixo com campos `char[]` e acesso direto via RRN: `fseek(file,
 ### 1. Converter CSV → Binário *(apenas uma vez)*
 
 ```bash
-g++ -Wall -Wextra -g3 B-treeAPI/conversor.cpp MusicClass/music.cpp databaseClass/database.cpp -o B-treeAPI/conversor
-cd B-treeAPI && ./conversor && cd ..
+g++ -Wall -Wextra -g3 Data/conversor.cpp MusicClass/music.cpp databaseClass/database.cpp -o Data/conversor
+cd Data && ./conversor && cd ..
 ```
 
 ### 2. Compilar e Rodar a API
@@ -91,14 +91,7 @@ make run      # Compila e executa (porta 5000)
 cd frontend && python3 server.py
 ```
 
-Acesse **`http://localhost:3000`** — o proxy encaminha `/api/*` para a porta 5000.
-
-### 4. Testador via Terminal *(opcional)*
-
-```bash
-g++ -Wall -Wextra -g3 B-treeAPI/testador.cpp MusicClass/music.cpp databaseClass/database.cpp -o B-treeAPI/testador
-cd B-treeAPI && ./testador
-```
+Acesse **`http://localhost:3000`** — o proxy encaminha `/api/*` para a porta 5000
 
 ---
 
